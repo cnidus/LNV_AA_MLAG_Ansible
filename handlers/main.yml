@@ -1,0 +1,81 @@
+- name: restart switchd
+  service: name=switchd state=restarted
+
+- name: wait for switchd to start
+  wait_for:  path=/var/run/switchd.ready delay=15
+
+- name: restart lldpd
+  service: name=lldpd state=restarted
+
+- name: restart ptmd
+  service: name=ptmd state=restarted
+
+- name: restart quagga
+  service: name=quagga state=restarted
+
+- name: restart ntp
+  service: name=ntp state=restarted
+
+- name: restart isc-dhcp-relay
+  service: name=isc-dhcp-relay state=restarted
+
+- name: restart isc-dhcp-server
+  service: name=isc-dhcp-server state=restarted
+
+- name: restart vxrd
+  service: name=vxrd state=restarted
+
+- name: restart vxsnd
+  service: name=vxsnd state=restarted
+
+- name: reload networking
+  shell: "service networking reload"
+  register: networking_reload
+  notify: print networking reload error
+  changed_when: "networking_reload.stderr != ''"
+
+- name: reload server networking
+  shell: "ifdown eth0;ifup eth0;ifdown eth1;ifup eth1"
+  register: server_networking_reload
+  notify: print server networking reload error
+  changed_when: "server_networking_reload.stderr != ''"
+
+- name: reload quagga
+  shell: "service quagga reload"
+  register: quagga_reload
+  notify: print quagga reload error
+  changed_when: "quagga_reload.stderr != ''"
+
+- name: print networking reload error
+  debug: msg="{{networking_reload.stderr}}"
+  when: networking_reload.stderr is defined
+  failed_when: "networking_reload.stderr is defined"
+
+- name: print server networking reload error
+  debug: msg="{{server_networking_reload.stderr}}"
+  when: server_networking_reload.stderr is defined
+
+- name: print quagga reload error
+  debug: msg="{{quagga_reload.stderr}}"
+  when: quagga_reload.stderr is defined
+  failed_when: "quagga_reload.stderr is defined"
+
+- name: rerun rc.local
+  shell: "/etc/rc.local"
+  register: rc_local
+  notify: print rc local error
+  changed_when: "rc_local.stderr != ''"
+
+- name: print rc local error
+  debug: msg="{{rc_local.stdout_lines}}"
+  when: rc_local.stderr is defined
+  failed_when: "rc_local.stderr is defined"
+
+- name: install ACL
+  shell: "/usr/cumulus/bin/cl-acltool -i"
+  register: clacltool
+  notify: print acl_tool result
+
+- name: print acl_tool result
+  debug: var=clacltool.stdout_lines
+

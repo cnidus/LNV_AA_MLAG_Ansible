@@ -1,0 +1,46 @@
+---
+- hosts: spine
+  gather_facts: False
+  user: root
+  tasks:
+    - name: Gather BGP sum information
+      command: vtysh -c "show ip bgp sum"
+      register: bgpsum
+
+    - debug: var=bgpsum.stdout_lines
+
+    - name: Gather BGP route information
+      command: vtysh -c "show ip bgp"
+      register: bgproute
+
+    - debug: var=bgproute.stdout_lines
+
+    - name: Gather traffic information
+      command: "bwm-ng -A 10 -T avg -c 11 -o plain"
+      register: traff
+
+    - debug: var=traff.stdout_lines
+
+
+- hosts: leaf
+  user: root
+  tasks:
+    - name: Gather BGP sum information
+      command: vtysh -c "show ip bgp sum"
+      register: bgpsum
+
+    - debug: var=bgpsum.stdout_lines
+
+    - name: Gather BGP route information
+      command: vtysh -c "show ip bgp"
+      register: bgproute
+
+    - debug: var=bgproute
+
+    - name: Gather traffic information
+      command: "bwm-ng -A 10 -T avg -c 11 -o plain"
+      register: traff
+
+    - debug: var=traff.stdout_lines
+
+

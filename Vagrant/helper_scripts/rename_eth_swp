@@ -1,0 +1,211 @@
+#! /bin/bash
+### BEGIN INIT INFO
+# Provides:          rename_eth_swp
+# Required-Start:
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
+# X-Start-Before:    ifupdown arp_refresh
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Rename eth interfaces to swp
+### END INIT INFO
+
+# Author: Eric Pulvino <eric@cumulusnetworks.com>
+#
+# Please remove the "Author" lines above and replace them
+# with your own name if you copy and modify this script.
+
+PATH=/sbin:/bin:/usr/bin
+
+NAME=rename_eth_swp
+SCRIPTNAME=/etc/init.d/$NAME
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+if [ -e /etc/default/remap_eth ]; then
+  . /etc/default/remap_eth
+else
+  REMAP_METHOD="simple"
+fi
+
+
+start_state=1st_boot
+if [ "$(ip link show | cut -d ':' -f2 | grep '^ ' | grep -c 'swp')" -gt "0" ]; then
+    start_state=simple
+fi
+
+cumulus=false
+if grep -q -i 'cumulus' /etc/lsb-release &> /dev/null; then
+    cumulus=true
+fi
+
+simple_remap() {
+    if [ "$cumulus" = true ]; then
+    	echo -e "INFO: Complex Remap File (/etc/default/remap_eth) not present.\n   Proceeding with Simple Interface Remap..."
+    	interfaces=`ip link show | sed -n 's/.*\(eth[1-9][0-9]*\):.*/\1/p'`
+    	for i in $interfaces ; do
+	        num=`echo $i | sed -n 's/.*eth\(.*\).*/\1/p'`
+	        ip link set eth$num name swp$num
+    	done
+    else
+    	echo "INFO: Complex Remap File (/etc/default/remap_eth) not in place. Skipping Interface Remapping."
+    fi
+}
+
+complex_remap() {
+  should_remap_be_performed
+  if [ "$?" = "1" ]; then
+    #This function is designed to move a VM from the state of having
+    #  the simple_remap function performed at boot time to the resultant
+    #  of the complex_remap function without a reboot. The complex
+    #  remap function will then perform subsequent remaps at boottime.
+    #  This function is designed to be performed once after the VM is
+    #  booted and the supporting complex_remap files have been moved
+    #  into place. Since it is performed when the machine has already
+    #  booted it is necessary to first down all the interfaces before
+    #  performing the remap.
+    echo -e "\n>>>>>>> RENAMING INTERFACES <<<<<<<"
+
+    #Taking Pre Snapshot
+    pre_links=$(ip link show | cut -d ":" -f2 | grep "^ " | grep -v "\.")
+
+    #Downing ALL Links that are Up
+    up_links=$(ip link show up | cut -d ":" -f2 | grep "^ " | grep -v "\.")
+    for link in $up_links; do
+        if [ "$debug" = true ]; then echo " Bringing link $link down."; fi
+        /sbin/ip link set $link down
+    done
+
+    remapped_ints[0]=0
+    for intf in $MAP;do
+        from=`echo $intf | awk 'BEGIN { FS="=" }; { print $1 }'`
+        if [ "$start_state" = "simple" ]; then
+            if [ "$from" != "eth0" ]; then
+                from="swp"${from:3}
+            fi    
+        fi
+        to=`echo $intf | awk 'BEGIN { FS="=" }; { print $2 }'`
+        echo " Remapping: $from to $to"        	    
+        if [ "$from" != "$to" ]; then
+    	    /sbin/ip link set $from name $to
+        else
+            echo "    [skipping since no remap needed for this interface]"   
+        fi
+        remapped_ints=("${remapped_ints[@]}" "$from")
+    done
+
+    #Remapping extra interfaces created by providers
+    if [ "$start_state" = "simple" ]; then
+        count=0
+        for link in $pre_links; do
+            if [ "$link" = "lo" ]; then
+                continue
+            else
+                if [[ " ${remapped_ints[@]} " =~ " ${link} " ]]; then
+                    ((count++))
+                else
+                    if [ "$debug" = true ]; then echo " Remapping extra interface: $link to eth$count."; fi
+                    if [ "$link" != "eth$count" ]; then
+                        /sbin/ip link set $link name "eth$count"
+                    fi
+                    ((count++))
+                fi
+            fi
+        done
+    fi
+
+    #Up-ing ALL Links that are present
+    #  This is necessary to restore communications
+    post_links=$(ip link show | cut -d ":" -f2 | grep "^ " | grep -v "\.")
+    for link in $post_links; do
+        if [ "$debug" = true ]; then echo " Bringing link $link up (if config is available)"; fi
+        /sbin/ifdown $link > /dev/null #deprogramming interface if config present
+        /sbin/ifup $link > /dev/null  #reprogramming interface if config present
+    done
+    if [ "$cumulus" = true ]; then /sbin/ifreload -a; fi
+  fi
+}
+
+should_remap_be_performed() {
+    #Check to see if To/From Interfaces exists (can we even do the remap?)
+    if [ "$debug" = true ]; then echo -e "\n  # Checking if Desired/Required Interfaces exist..."; fi
+    all_to_ints_exist=1
+    all_from_ints_exist=1
+    for intf in $MAP; do
+        from=`echo $intf | awk 'BEGIN { FS="=" }; { print $1 }'`
+        if [ "$start_state" = "simple" ]; then
+            if [ "$from" != "eth0" ]; then
+                from="swp"${from:3}
+            fi    
+        fi
+        to=`echo $intf | awk 'BEGIN { FS="=" }; { print $2 }'`
+
+        check_exist=$(ip link show $to &> /dev/null)
+        to_not_exist=$?
+        check_exist=$(ip link show $from &> /dev/null)
+        from_not_exist=$?
+
+        display_required_interface=false
+        if [ "$to_not_exist" -eq "1" ]; then
+            all_to_ints_exist=0
+            display_required_interface=true
+            if [ "$debug" = true ]; then echo "   * Desired interface: $to does not exist!"; fi
+        fi
+
+        if [ "$from_not_exist" -eq "1" ]; then
+            all_from_ints_exist=0
+            if [ "$debug" = true ] && [ "$display_required_interface" = true ]; then echo "       Required interface: $from does not exist!"; fi
+        fi
+    done
+    if [ "$all_to_ints_exist" = "1" ]; then
+        echo -e "\nINFO: Desired interfaces all exist... no remap needed."
+        return 0
+    else
+        if [ "$all_from_ints_exist" = "1" ]; then
+            #At least one "to" ints is not present and all from ints are present
+            return 1
+        else
+            #At least one "to" ints is not present and at least one of the from ints is not present
+            echo -e "\nERROR: Desired interfaces do not all exist however remap is not possible based on lack of required interfaces." 
+            return 0
+        fi
+    fi       
+}
+
+do_start() {
+    #Determine which Remap mode to use.
+    if [ "$REMAP_METHOD" = "mapped" ]; then
+        complex_remap
+    else
+        simple_remap
+    fi
+}
+
+case "$1" in
+  start|"")
+	log_action_begin_msg "Renaming interfaces"
+	do_start
+	log_action_end_msg 0
+	;;
+  verbose)
+	log_action_begin_msg "Renaming interfaces -- verbose mode"
+    debug=true
+	do_start
+	log_action_end_msg 0
+	;;
+  restart|reload|force-reload)
+	echo "Error: argument '$1' not supported" >&2
+	exit 3
+	;;
+  stop)
+	# No-op
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME [start|stop|verbose]" >&2
+	exit 3
+	;;
+esac
+
+:

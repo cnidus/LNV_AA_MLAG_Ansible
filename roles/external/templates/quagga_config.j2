@@ -1,0 +1,62 @@
+{% set bgpvars = bgp[ansible_hostname] -%}
+{% set loopback_ip = interfaces[ansible_hostname].loopback.ipv4 -%}
+
+{### Set the logging and save all the config in Quagga.conf file ###}
+log file /var/log/quagga/quagga.log
+service integrated-vtysh-config
+!
+!
+router bgp {{ bgpvars.myasn }}
+  bgp router-id {{loopback_ip|replace("/32", "")}}
+  maximum-paths 64
+  bgp bestpath as-path multipath-relax
+  bgp bestpath compare-routerid
+
+{### Always advertise a default route for testing ###}
+  network 0.0.0.0/0
+
+{### Loop through external BGP connections ###}
+
+{% for groupname in bgpvars.external_peers.keys() -%}
+  neighbor {{groupname}} peer-group  
+  neighbor {{groupname}} description {{bgpvars.external_peers[groupname].description}}
+
+  {% if bgpvars.external_peers[groupname].prefix_list_out is defined -%}
+    neighbor {{groupname}} prefix-list {{bgpvars.external_peers[groupname].prefix_list_out}} out
+  {% endif -%}
+  {% if bgpvars.external_peers[groupname].prefix_list_in is defined -%}
+    neighbor {{groupname}} prefix-list {{bgpvars.external_peers[groupname].prefix_list_in}} in
+  {% endif -%}
+
+  {% set peerasn = bgpvars.external_peers[groupname].asn -%}
+  {% set peers = bgpvars.external_peers[groupname].ipv4 -%}
+
+  {% for peer_ipv4 in peers -%}
+  neighbor {{peer_ipv4}} remote-as {{peerasn}}
+  neighbor {{peer_ipv4}} peer-group {{groupname}}
+  {% endfor %}
+{% endfor %}
+
+
+address-family ipv6 unicast
+
+{% for groupname in bgpvars.external_peers.keys() -%}
+  {% set peerasn = bgpvars.external_peers[groupname].asn -%}
+  {% set peers = bgpvars.external_peers[groupname].ipv4 -%}
+
+  {% for peer_ipv4 in peers -%}
+  neighbor {{peer_ipv4}} peer-group {{groupname}}
+  neighbor {{peer_ipv4}} activate
+  {% endfor %}
+{% endfor %}
+ exit-address-family
+!
+
+{### Configure prefix lists ###}
+{% set lists = prefix_lists[ansible_hostname] -%}
+{% for list_name in lists.keys() -%}
+  {% for seq in lists[list_name] -%}
+  ip prefix-list {{list_name}} seq {{seq}}
+  {% endfor %}
+{% endfor %}
+

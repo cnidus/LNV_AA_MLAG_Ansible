@@ -1,0 +1,17 @@
+graph G {
+  graph [hostidtype="hostname", version="1:0"];
+    "tor1a":"swp29" -- "spine1a":"swp1";
+    "tor1a":"swp30" -- "spine1b":"swp1";
+    "tor1b":"swp29" -- "spine2a":"swp1";
+    "tor1b":"swp30" -- "spine2b":"swp1";
+    "spine1a":"swp31" -- "par1":"port1";
+    "spine1a":"swp32" -- "par2":"port1";
+    "spine1b":"swp31" -- "par1":"port2";
+    "spine1b":"swp32" -- "par2":"port2";
+    "spine2a":"swp31" -- "par1":"port3";
+    "spine2a":"swp32" -- "par2":"port3";
+    "spine2b":"swp31" -- "par1":"port4";
+    "spine2b":"swp32" -- "par2":"port4";
+
+
+}

@@ -1,0 +1,99 @@
+{% set node = interfaces[ansible_hostname] %}
+{% set bgpvars = bgp[ansible_hostname] -%}
+{% set bridgevars = bridges[ansible_hostname] -%}
+
+
+#Configured by Ansible
+
+{% for interface in  node.keys() -%}
+auto {{interface}}
+{% if interface == "lo" -%}
+iface lo inet loopback
+clagd-vxlan-anycast-ip {{node[interface].clag_anycast}}
+{% else %}
+iface {{interface}}
+{% endif -%}
+{% if node[interface].ipv4 is defined %}
+  address {{node[interface].ipv4}}
+{% endif -%}
+{% if node[interface].ipv6 is defined %}
+  address {{node[interface].ipv6}}
+{% endif %}
+{% if interface == "eth0" %}
+  gateway {{node[interface].gw}}
+{% endif %}
+{% if node[interface].alias is defined %}
+  alias {{ node[interface].alias }}
+{% endif %}
+{% if node[interface].mtu is defined %}
+  mtu {{ node[interface].mtu }}
+{% endif %}
+{% if interface.startswith('bond') -%}
+  bond-slaves {{node[interface].slaves|join(' ')}}
+  bond-mode 802.3ad
+  bond-miimon 100
+  bond-use-carrier 1
+  bond-lacp-rate 1
+  bond-min-links 1
+  bond-xmit-hash-policy layer3+4
+  clag-id {{node[interface].clagid}}
+{% endif -%}
+{% if interface.startswith('vni') -%}
+  vxlan-id {{node[interface].vni}}
+  vxlan-local-tunnelip {{node[interface].tun_ip}}
+{% endif -%}
+{% if interface.startswith('peerlink') %}
+  bond-slaves {{node[interface].slaves|join(' ')}}
+  bond-mode 802.3ad
+  bond-miimon 100
+  bond-use-carrier 1
+  bond-lacp-rate 1
+  bond-min-links 1
+  bond-xmit-hash-policy layer3+4
+
+auto peerlink.4094
+iface peerlink.4094
+    address {{node[interface].ip}}
+    netmask 255.255.255.0     
+    clagd-priority 4096
+    clagd-peer-ip {{node[interface].peerip}}
+    clagd-backup-ip {{node[interface].backupip}}
+    clagd-sys-mac {{node[interface].mac}}
+
+{% for vlan in node[interface].vlans %}
+auto peerlink.{{vlan}}
+iface peerlink.{{vlan}}
+
+{% endfor %}
+{% endif %}
+{% endfor -%}
+
+auto bond1.20
+iface bond1.20
+  mtu 9000
+
+auto bond1.30
+iface bond1.30
+  mtu 9000
+auto bond1.40
+iface bond1.40
+  mtu 9000
+
+{% if bgpvars.internal_fabric.interfaces is defined -%}
+#### Fabric ports ####
+{% for interface in bgpvars.internal_fabric.interfaces -%}
+auto {{interface}}
+iface {{interface}}
+  mtu 9216
+{% endfor %}
+{% endif -%}
+
+{% for bridge in bridgevars -%}
+auto {{bridgevars[bridge].name}}
+iface {{bridgevars[bridge].name}}
+  bridge-ports {{bridgevars[bridge].members|join(' ')}}
+{% if bridgevars[bridge].svi is defined -%}
+  address {{bridgevars[bridge].svi.ip}}
+  address-virtual {{bridgevars[bridge].svi.mac}} {{bridgevars[bridge].svi.virtual}} 
+{% endif %}  
+{% endfor %}

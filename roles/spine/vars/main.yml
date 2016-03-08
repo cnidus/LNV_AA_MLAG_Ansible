@@ -1,0 +1,46 @@
+interfaces:
+  s6k1:
+    lo:
+      ipv6: "fd::1/128"
+      ipv4: "10.254.0.1/32"
+      lnv_ip: "10.254.0.99/32"
+    eth0:
+      ipv4: "10.11.26.41/24"
+      gw: "10.11.26.254"
+
+  s6k2:
+    lo:
+      ipv6: "fd::2/128"
+      ipv4: "10.254.0.2/32"
+      lnv_ip: "10.254.0.99/32"
+    eth0:
+      ipv4: "10.11.26.42/24"
+      gw: "10.11.26.254"
+
+bgp:
+  s6k1:
+    myasn: "64512"
+    #Internal Fabric ports to run BGP unnumbered on
+    ipv4_networks: ["10.254.0.99/32","10.254.0.1/32"]
+    internal_fabric:
+      interfaces: ["swp3","swp4","swp5","swp6"]
+      description: "Internal Fabric Network"
+  
+  s6k2:
+    myasn: "64513"
+    #Internal Fabric ports to run BGP unnumbered on
+    ipv4_networks: ["10.254.0.99/32","10.254.0.2/32"]
+    internal_fabric:
+      interfaces: ["swp3","swp4","swp5","swp6"]
+      description: "Internal Fabric Network"
+
+lnv:
+  s6k1:
+    lnv_ip: "10.254.0.99"
+    lo: "10.254.0.1"
+    peers: "10.254.0.1 10.254.0.2"
+
+  s6k2:
+    lnv_ip: "10.254.0.99"
+    lo: "10.254.0.2"
+    peers: "10.254.0.1 10.254.0.2"

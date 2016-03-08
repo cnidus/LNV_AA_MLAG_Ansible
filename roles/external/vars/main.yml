@@ -1,0 +1,51 @@
+interfaces:
+
+  external:
+    loopback:
+      ipv4: "10.254.2.1/32"
+      ipv6: "fd::2:1/128"
+    swp1:
+      ipv4: "192.168.1.1/30"
+      ipv6: "fda:1::1/64"
+    swp2:
+      ipv4: "192.168.2.1/30"
+      ipv6: "fda:2::1/64"
+    swp3:
+      ipv4: "192.168.3.1/30"
+      ipv6: "fda:3::1/64"
+    swp4:
+      ipv4: "66.150.126.145/30"
+      ipv6: "2600:c08:2002:14::1/64"
+    swp5:
+      ipv4: "66.150.126.161/30"
+      ipv6: "2600:c08:2002:f::1/64"
+    swp6:
+      ipv4: "192.168.5.1/30"
+      ipv6: "fda:5::1/64"
+    swp7:
+      ipv4: "192.168.6.1/30"
+      ipv6: "fda:6::1/64"
+
+
+bgp:
+  external:
+    myasn: "65000"
+    external_peers:
+      spine01:
+        asn: 394670
+        ipv4: ["192.168.1.2","192.168.2.2","192.168.3.2","66.150.126.146"]
+        ipv6: ["fda:1::2","fda:2::2","fda:3::2","2600:c08:2002:14::2"]
+        prefix_list_out: "allow_default"
+        description: "Spine1"
+      spine02:
+        asn: 394670
+        ipv4: ["192.168.5.2","192.168.6.2","66.150.126.162"]
+        ipv6: ["fda:5::2","fda:6::2","2600:c08:2002:f::2"]
+        prefix_list_out: "allow_default"
+        description: "Spine2"
+
+prefix_lists:
+
+  external:
+    allow_default: ["10 permit 0.0.0.0/0", "100 deny any"]
+

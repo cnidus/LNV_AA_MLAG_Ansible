@@ -1,0 +1,32 @@
+##Example for configuring an apt cache proxy
+- name: configure APT cache proxy
+  copy: src=90apt-proxy dest=/etc/apt/apt.conf.d/90apt-proxy
+
+#- apt: name=netshow update_cache=yes
+
+## Example to enable Debian repo and add an external package then switch
+## back to the Cumulus repo
+#- name: configure Debian APT sources
+#  copy: src=deb_sources.list dest=/etc/apt/sources.list
+
+#- apt: name=bwm-ng update_cache=yes
+
+#- name: configure CL APT sources
+#  copy: src=cl_sources.list dest=/etc/apt/sources.list
+
+##Example of a time stamp to use to mark files using {{timestamp}}
+- name: Set time stamp
+  local_action: shell date
+  register: timestamp
+  run_once: true
+
+- name: Configure NTP
+  copy: src=ntp.conf dest=/etc/ntp.conf
+  notify: restart ntp
+
+- name: Disable ZTP for virtual environment
+  command: /usr/lib/cumulus/autoprovision --disable
+  when: virtualbox is defined and virtualbox == "yes"
+
+- name: Set Hostname
+  hostname: name={{inventory_hostname}}

@@ -1,0 +1,22 @@
+---
+interfaces:
+  oob01:
+
+  oob02:
+
+bridge:
+  oob01:
+    vlan253:
+      vlanid: 253
+      address: "192.168.253.214/24"
+    vlan254:
+      vlanid: 254
+      address: "192.168.254.214/24"
+
+  oob02:
+    vlan253:
+      vlanid: 253
+      address: "192.168.253.213/24"
+    vlan254:
+      vlanid: 254
+      address: "192.168.254.213/24"

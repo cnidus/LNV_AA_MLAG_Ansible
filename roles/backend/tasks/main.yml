@@ -1,0 +1,10 @@
+- name: Configure /etc/network/interfaces
+  template: src=interfaces.j2 dest=/etc/network/interfaces
+  notify: reload networking
+  tags:
+    - interfaces
+
+# To be added back later.
+#- name: Configure PTM
+#  copy: src=topology.dot dest=/etc/ptm.d/topology.dot
+#  notify: restart ptmd

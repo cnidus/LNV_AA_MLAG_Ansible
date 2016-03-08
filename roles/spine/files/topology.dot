@@ -1,0 +1,11 @@
+graph G {
+  hostnametype="hostname"
+  "s6k1":"swp8" -- "s4k1":"swp49"
+  "s6k1":"swp12" -- "s4k2":"swp49"
+  "s6k1":"swp16" -- "s4k3":"swp49"
+  "s6k1":"swp20" -- "s4k4":"swp49"
+  "s6k2":"swp8" -- "s4k1":"swp50"
+  "s6k2":"swp12" -- "s4k2":"swp50"
+  "s6k2":"swp16" -- "s4k3":"swp50"
+  "s6k2":"swp20" -- "s4k4":"swp50"
+}

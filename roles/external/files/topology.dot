@@ -1,0 +1,10 @@
+graph G {
+  hostnametype="hostname"
+  "external":"swp1" -- "spine01":"swp30s0"
+  "external":"swp2" -- "spine01":"swp31s0"
+  "external":"swp3" -- "spine01":"swp31s1"
+  "external":"swp4" -- "spine01":"swp32s0"
+  "external":"swp5" -- "spine02":"swp32s0"
+  "external":"swp6" -- "spine02":"swp31s0"
+  "external":"swp7" -- "spine02":"swp31s1"
+}

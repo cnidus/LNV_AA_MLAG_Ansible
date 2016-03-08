@@ -1,0 +1,22 @@
+---
+interfaces:
+  backend01:
+
+  backend02:
+
+bridge:
+  backend01:
+    vlan253:
+      vlanid: 253
+      address: "192.168.253.212/24"
+    vlan254:
+      vlanid: 254
+      address: "192.168.254.212/24"
+
+  backend02:
+    vlan253:
+      vlanid: 253
+      address: "192.168.253.210/24"
+    vlan254:
+      vlanid: 254
+      address: "192.168.254.210/24"

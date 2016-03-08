@@ -1,0 +1,33 @@
+{% set node = interfaces[ansible_hostname] %}
+{% set bgpvars = bgp[ansible_hostname] -%}
+
+#Configured by Ansible
+auto eth0
+iface eth0 inet dhcp
+
+{### Check if this is VirtualBox or not to switch between eth0 and eth1 ###}
+{% if virtualbox is defined and virtualbox == "yes" %}
+auto eth1
+iface eth1 inet dhcp
+{% endif -%}
+
+{% for interface in  node.keys() -%}
+auto {{interface}}
+{% if interface == "loopback" -%}
+iface lo inet loopback
+{% else %}
+iface {{interface}}
+{% endif -%}
+  address {{node[interface].ipv4}}
+{% if node[interface].ipv6 is defined %}
+  address {{node[interface].ipv6}}
+{% endif %}
+{% if node[interface].alias is defined %}
+  alias {{ node[interface].alias }}
+{% endif %}
+{% if node[interface].mtu is defined %}
+  mtu {{ node[interface].mtu }}
+{% endif %}
+
+{% endfor %}
+

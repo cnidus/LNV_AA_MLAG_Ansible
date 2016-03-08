@@ -1,0 +1,102 @@
+##########################################
+##   Switch Settings
+##########################################
+#This is the Vagrant Box that will be used for all switches
+switch_code="CumulusCommunity/cumulus-vx"
+
+#These are the hostnames for the switches
+switches=["internet","spine01","spine02","leaf01","leaf02","leaf03","leaf04","oob"]
+
+# Amount of memory in MB to dedicate to each Switch VM.
+switch_mem="200" #in MB
+
+#This line will install switch interfaces in the /etc/network/interfaces file on first boot
+#    ONLY WORKS WITH VIRTUALBOX Provider
+configure_switch_interfaces=False
+
+
+##########################################
+##   Server Settings
+##########################################
+# This is the Vagrant Box that will be used for all servers
+server_code="boxcutter/ubuntu1404"
+
+# These are the hostnames for the servers
+servers=["server1","server2","server3","server4","mgmt"]
+
+# Amount of memory in MB to dedicate to each Server VM.
+server_mem="400" 
+
+# Debian hosts that should also have remapped interfaces.
+#   --Useful to eliminate the vagrant interface on host devices
+debian_host_remaps=["server1","server2","server3","server4","mgmt"]
+
+
+######################################################
+#############    Everything Else     #################
+######################################################
+
+# Provider -- the provider can be set to either "virtualbox" or "libvirt".
+#   If you do not have a specific need for libvirt, you probably want to 
+#   select "virtualbox" as your provider
+provider="virtualbox"
+
+# By default, Vagrant will share the directory with the Vagrantfile to /vagrant on the host
+#  use this knob to enable or disable that ability.
+synced_folder=False
+
+
+##########################################
+##   Boot Ordering
+##########################################
+# If set to anything other than "", the listed device will appear first (or second) in the Vagrantfile.
+#    This setting is useful for Vagrantfiles created for the Virtualbox provider where order matters.
+#    (When using the libvirt provider, all devices are brought up at once by default)
+
+# first_device_to_boot will execute the helper script "1st_device_config" upon boot
+first_device_to_boot="mgmt"
+
+# second_device_to_boot will execute the helper script "2nd_device_config" upon boot
+second_device_to_boot="oob"
+
+
+###################################
+#### MAC Address Configuration ####
+###################################
+# Define the Management Interface that will recieve a custom mac
+MGMT_Interface="eth0"
+
+# Mac to Hostname Mapping -- Sets MAC on the MGMT_Interface for the following hostnames
+# Example: mac_map{"leaf01":"A0000000BB00"}
+mac_map={}
+
+# Set this to False to use all randomly generated macs.
+custom_mac=True  
+
+# If Custom Mac is true this is the starting MAC for assignment for any devices not in mac_map
+start_mac="A00000000000" 
+
+#This file is generated to store the mapping between macs and mgmt interfaces
+dhcp_mac_file="./dhcp_mac_map" 
+
+###################################
+####      Fake Devices         ####
+###################################
+# When a "Fake Device" is connected to a normal device (in the topology file) 
+#   a network interface will be created on the normal device as it if was
+#   connected to another network device. This is useful for testing interface
+#   configurations. IFUPDOWN2 will error out if interface configuration is 
+#   applied to an interface that does not exist. Hence the need for this option.
+#   (Previously referred to as "[EMPTY]" Connections)
+Fake_Devices=[]
+
+#####################################
+#### Ansible Hostfile Generation ####
+#####################################
+#This line will generate a dummy ansible playbook which will be run against each device for the purposes
+# of having Vagrant dynamically generate an ansible inventory file that can be used for other playbooks.
+generate_ansible_hostfile=False
+
+
+
+
